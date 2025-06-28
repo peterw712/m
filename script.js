@@ -100,8 +100,8 @@ const words =  [
   "I radiate calm energy.",
   "I allow peace to enter my thoughts.",
   "Every inhale renews me. Every exhale softens me.",
-  "I am clarity. I am ease. I am love."
-  "I am awareness itself.",
+  "I am clarity. I am ease. I am love.",
+    "I am awareness itself.",
     "I rest in the eternal now.",
     "Presence is my true nature.",
     "I am the witness of all that arises.",
