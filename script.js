@@ -134,11 +134,20 @@ function setNewInterval() {
     }
 }
 
-// Function to speak the given text
 function speak(text) {
     const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+
+    // Try to find a male voice by name (you can tweak this list based on what shows up in console)
+    const maleVoice = voices.find(voice =>
+        /male|daniel|david|fred|alex|google uk english male/i.test(voice.name + voice.voiceURI)
+    );
+
+    utterance.voice = maleVoice || voices[0]; // fallback to first voice
+    utterance.rate = 1; // optional: tweak rate/speed
     window.speechSynthesis.speak(utterance);
 }
+
 
 // Event listener for the set interval button
 setIntervalButton.addEventListener('click', setNewInterval);
