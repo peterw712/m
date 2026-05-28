@@ -92,6 +92,37 @@
       accent-color: #fafafa;
     }
 
+    .toggle-control {
+      display: grid;
+      gap: 12px;
+      padding-top: 2px;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 0;
+      color: #d4d4d8;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #fafafa;
+    }
+
+    .helper {
+      margin: -4px 0 0;
+      color: #71717a;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
     .buttons {
       display: flex;
       justify-content: center;
@@ -162,6 +193,16 @@
       <div>
         <label for="silenceRange">Silence between affirmations: <span id="silenceValue">5</span> seconds</label>
         <input id="silenceRange" type="range" min="0" max="30" step="1" value="5" />
+      </div>
+
+      <div class="toggle-control">
+        <label class="toggle-row" for="beatsToggle">
+          <input id="beatsToggle" type="checkbox" />
+          Binaural beats: 6 Hz relaxation tone
+        </label>
+        <p class="helper">Use headphones. Left ear 200 Hz, right ear 206 Hz.</p>
+        <label for="beatsVolume">Beat volume: <span id="beatsVolumeValue">12</span>%</label>
+        <input id="beatsVolume" type="range" min="0" max="30" step="1" value="12" />
       </div>
 
       <div class="buttons">
@@ -280,12 +321,21 @@
     const playButton = document.getElementById("playButton");
     const silenceRange = document.getElementById("silenceRange");
     const silenceValue = document.getElementById("silenceValue");
+    const beatsToggle = document.getElementById("beatsToggle");
+    const beatsVolume = document.getElementById("beatsVolume");
+    const beatsVolumeValue = document.getElementById("beatsVolumeValue");
     const statusEl = document.getElementById("status");
+
+    const BINAURAL_LEFT_HZ = 200;
+    const BINAURAL_BEAT_HZ = 6;
+    const BINAURAL_RIGHT_HZ = BINAURAL_LEFT_HZ + BINAURAL_BEAT_HZ;
 
     let isPlaying = false;
     let queue = [];
     let timer = null;
     let voices = [];
+    let audioContext = null;
+    let binauralNodes = null;
 
     function shuffleArray(items) {
       const array = [...items];
@@ -326,12 +376,90 @@
       );
     }
 
+
+    function getBeatVolume() {
+      return Math.max(0, Math.min(0.3, Number(beatsVolume.value) / 100));
+    }
+
+    function startBinauralBeats() {
+      if (!beatsToggle.checked || binauralNodes) return;
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        statusEl.textContent = "Web Audio is not supported in this browser.";
+        beatsToggle.checked = false;
+        return;
+      }
+
+      audioContext = audioContext || new AudioContextClass();
+
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+
+      const leftOsc = audioContext.createOscillator();
+      const rightOsc = audioContext.createOscillator();
+      const leftGain = audioContext.createGain();
+      const rightGain = audioContext.createGain();
+      const masterGain = audioContext.createGain();
+      const merger = audioContext.createChannelMerger(2);
+
+      leftOsc.type = "sine";
+      rightOsc.type = "sine";
+      leftOsc.frequency.value = BINAURAL_LEFT_HZ;
+      rightOsc.frequency.value = BINAURAL_RIGHT_HZ;
+
+      const volume = getBeatVolume();
+      leftGain.gain.value = 1;
+      rightGain.gain.value = 1;
+      masterGain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      masterGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), audioContext.currentTime + 0.08);
+
+      leftOsc.connect(leftGain);
+      rightOsc.connect(rightGain);
+      leftGain.connect(merger, 0, 0);
+      rightGain.connect(merger, 0, 1);
+      merger.connect(masterGain);
+      masterGain.connect(audioContext.destination);
+
+      leftOsc.start();
+      rightOsc.start();
+
+      binauralNodes = { leftOsc, rightOsc, masterGain, merger, leftGain, rightGain };
+    }
+
+    function stopBinauralBeats() {
+      if (!binauralNodes || !audioContext) return;
+
+      const nodes = binauralNodes;
+      binauralNodes = null;
+
+      try {
+        nodes.masterGain.gain.cancelScheduledValues(audioContext.currentTime);
+        nodes.masterGain.gain.setValueAtTime(Math.max(0.0001, nodes.masterGain.gain.value), audioContext.currentTime);
+        nodes.masterGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.08);
+        nodes.leftOsc.stop(audioContext.currentTime + 0.1);
+        nodes.rightOsc.stop(audioContext.currentTime + 0.1);
+      } catch (error) {
+        // Already stopped or disconnected.
+      }
+    }
+
+    function updateBinauralVolume() {
+      beatsVolumeValue.textContent = beatsVolume.value;
+      if (binauralNodes && audioContext) {
+        const volume = getBeatVolume();
+        binauralNodes.masterGain.gain.setTargetAtTime(volume, audioContext.currentTime, 0.03);
+      }
+    }
+
     function stop() {
       isPlaying = false;
       playButton.textContent = "Play";
       if (timer) clearTimeout(timer);
       timer = null;
       if (window.speechSynthesis) window.speechSynthesis.cancel();
+      stopBinauralBeats();
     }
 
     function speakNext() {
@@ -378,6 +506,7 @@
       queue = shuffleArray(AFFIRMATIONS);
       isPlaying = true;
       playButton.textContent = "Stop";
+      startBinauralBeats();
       speakNext();
     }
 
@@ -389,6 +518,14 @@
     silenceRange.addEventListener("input", () => {
       silenceValue.textContent = silenceRange.value;
     });
+
+    beatsToggle.addEventListener("change", () => {
+      if (beatsToggle.checked && isPlaying) startBinauralBeats();
+      else stopBinauralBeats();
+    });
+
+    beatsVolume.addEventListener("input", updateBinauralVolume);
+    updateBinauralVolume();
 
     if ("speechSynthesis" in window) {
       loadVoices();
