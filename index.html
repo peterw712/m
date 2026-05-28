@@ -192,7 +192,7 @@
     <section class="controls">
       <div>
         <label for="silenceRange">Silence between affirmations: <span id="silenceValue">5</span> seconds</label>
-        <input id="silenceRange" type="range" min="0" max="30" step="1" value="5" />
+        <input id="silenceRange" type="range" min="0" max="50" step="1" value="5" />
       </div>
 
       <div class="toggle-control">
@@ -378,7 +378,7 @@
 
 
     function getBeatVolume() {
-      return Math.max(0, Math.min(0.3, Number(beatsVolume.value) / 100));
+      return Math.max(0, Math.min(0.5, Number(beatsVolume.value) / 100));
     }
 
     function startBinauralBeats() {
