@@ -1,17 +1,403 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Word Display</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Core 100 Affirmations</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #09090b;
+      color: #fafafa;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #18181b 0, #09090b 48%, #000 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(720px, 100%);
+      background: rgba(24, 24, 27, 0.92);
+      border: 1px solid #27272a;
+      border-radius: 28px;
+      padding: 40px;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .eyebrow {
+      color: #71717a;
+      font-size: 13px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(32px, 7vw, 56px);
+      line-height: 1;
+      font-weight: 650;
+      letter-spacing: -0.05em;
+    }
+
+    .affirmation {
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .affirmation p {
+      margin: 0;
+      font-size: clamp(30px, 6vw, 54px);
+      line-height: 1.08;
+      font-weight: 600;
+      letter-spacing: -0.045em;
+    }
+
+    .controls {
+      margin-top: 28px;
+      display: grid;
+      gap: 26px;
+    }
+
+    label {
+      display: block;
+      color: #a1a1aa;
+      text-align: center;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #fafafa;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 18px;
+      padding: 17px 42px;
+      font-size: 18px;
+      font-weight: 650;
+      cursor: pointer;
+      background: #fafafa;
+      color: #09090b;
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+
+    button:hover {
+      background: #fff;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .status {
+      min-height: 20px;
+      color: #71717a;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        padding: 28px 22px;
+        border-radius: 22px;
+      }
+
+      .affirmation {
+        min-height: 250px;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .buttons {
+        flex-direction: column;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div id="wordContainer">Hello</div>
-    <div class="controls">
-        <input type="number" id="intervalInput" placeholder="Enter interval in seconds">
-        <button id="setIntervalButton">Set Interval</button>
+  <main class="app">
+    <div class="header">
+      <div class="eyebrow">Core 100</div>
+      <h1>Affirmations</h1>
     </div>
-    <script src="script.js"></script>
+
+    <section class="affirmation" aria-live="polite">
+      <p id="affirmationText">Press play.</p>
+    </section>
+
+    <section class="controls">
+      <div>
+        <label for="silenceRange">Silence between affirmations: <span id="silenceValue">5</span> seconds</label>
+        <input id="silenceRange" type="range" min="0" max="30" step="1" value="5" />
+      </div>
+
+      <div class="buttons">
+        <button id="playButton" type="button">Play</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </section>
+  </main>
+
+  <script>
+    const AFFIRMATIONS = [
+      { id: "core_001", text: "You do not need to solve your whole life tonight.", tone: "calming" },
+      { id: "core_002", text: "A difficult season is not your permanent identity.", tone: "hopeful" },
+      { id: "core_003", text: "You are speaking to a human being when you speak to yourself.", tone: "compassionate" },
+      { id: "core_004", text: "Self-hatred is not the price of improvement.", tone: "direct" },
+      { id: "core_005", text: "You are allowed to begin imperfectly.", tone: "encouraging" },
+      { id: "core_006", text: "Your worth is not waiting at the finish line.", tone: "grounded" },
+      { id: "core_007", text: "You can survive uncomfortable feelings.", tone: "steady" },
+      { id: "core_008", text: "Not every thought deserves complete trust.", tone: "grounded" },
+      { id: "core_009", text: "You are allowed to rest.", tone: "calming" },
+      { id: "core_010", text: "You are more than your worst moment.", tone: "compassionate" },
+      { id: "core_011", text: "Fear is not always prediction.", tone: "grounded" },
+      { id: "core_012", text: "You can take one step at a time.", tone: "steady" },
+      { id: "core_013", text: "Your mind is trying to protect you, not destroy you.", tone: "compassionate" },
+      { id: "core_014", text: "You do not need to earn basic compassion.", tone: "gentle" },
+      { id: "core_015", text: "Healing rarely happens all at once.", tone: "reflective" },
+      { id: "core_016", text: "You are still capable of change.", tone: "hopeful" },
+      { id: "core_017", text: "Your thoughts are not emergencies.", tone: "calming" },
+      { id: "core_018", text: "Progress can exist during difficult days.", tone: "encouraging" },
+      { id: "core_019", text: "You deserve gentleness from yourself too.", tone: "compassionate" },
+      { id: "core_020", text: "Human beings are not machines.", tone: "grounded" },
+      { id: "core_021", text: "You are allowed to move at a human pace.", tone: "gentle" },
+      { id: "core_022", text: "A setback is not a final identity.", tone: "steady" },
+      { id: "core_023", text: "You do not need complete certainty to continue forward.", tone: "hopeful" },
+      { id: "core_024", text: "Your nervous system can relearn safety.", tone: "calming" },
+      { id: "core_025", text: "You are not behind in life.", tone: "grounded" },
+      { id: "core_026", text: "Small repeated actions change lives.", tone: "encouraging" },
+      { id: "core_027", text: "You can improve without cruelty.", tone: "direct" },
+      { id: "core_028", text: "You are still part of the human story.", tone: "reflective" },
+      { id: "core_029", text: "Rest is not failure.", tone: "calming" },
+      { id: "core_030", text: "Your emotions are not proof that you are broken.", tone: "compassionate" },
+      { id: "core_031", text: "You are allowed to take up space.", tone: "encouraging" },
+      { id: "core_032", text: "You can begin again from this moment.", tone: "hopeful" },
+      { id: "core_033", text: "You are more than what you produce.", tone: "grounded" },
+      { id: "core_034", text: "Temporary pain can feel permanent while inside it.", tone: "reflective" },
+      { id: "core_035", text: "You deserve patience while healing.", tone: "gentle" },
+      { id: "core_036", text: "Your life is not ruined.", tone: "hopeful" },
+      { id: "core_037", text: "You can continue while uncertain.", tone: "steady" },
+      { id: "core_038", text: "You do not need to carry everything alone.", tone: "compassionate" },
+      { id: "core_039", text: "You are allowed to soften.", tone: "calming" },
+      { id: "core_040", text: "Human connection survives imperfection constantly.", tone: "grounded" },
+      { id: "core_041", text: "You are still becoming.", tone: "hopeful" },
+      { id: "core_042", text: "Your current feelings are not your final form.", tone: "encouraging" },
+      { id: "core_043", text: "You are not required to hate yourself into growth.", tone: "direct" },
+      { id: "core_044", text: "You deserve moments of peace.", tone: "gentle" },
+      { id: "core_045", text: "Your future is not fully visible from here.", tone: "hopeful" },
+      { id: "core_046", text: "Not every moment needs to be optimized.", tone: "reflective" },
+      { id: "core_047", text: "You are allowed to exist imperfectly.", tone: "compassionate" },
+      { id: "core_048", text: "You can survive this moment.", tone: "steady" },
+      { id: "core_049", text: "You are not a machine for productivity.", tone: "grounded" },
+      { id: "core_050", text: "Healing can begin quietly.", tone: "hopeful" },
+      { id: "core_051", text: "You do not need to prove your worth every day.", tone: "grounded" },
+      { id: "core_052", text: "Your pain deserves compassion, not ridicule.", tone: "compassionate" },
+      { id: "core_053", text: "You are allowed to outgrow old versions of yourself.", tone: "hopeful" },
+      { id: "core_054", text: "One difficult day does not erase your progress.", tone: "encouraging" },
+      { id: "core_055", text: "You are not failing for being tired.", tone: "gentle" },
+      { id: "core_056", text: "Your value is not measured by constant productivity.", tone: "grounded" },
+      { id: "core_057", text: "You can learn a kinder way to speak to yourself.", tone: "compassionate" },
+      { id: "core_058", text: "You are allowed to heal slowly.", tone: "gentle" },
+      { id: "core_059", text: "Not every feeling is permanent.", tone: "calming" },
+      { id: "core_060", text: "You are capable of rebuilding trust with yourself.", tone: "hopeful" },
+      { id: "core_061", text: "You do not need to carry shame forever.", tone: "compassionate" },
+      { id: "core_062", text: "You can pause without falling behind.", tone: "calming" },
+      { id: "core_063", text: "Your existence is not a performance.", tone: "direct" },
+      { id: "core_064", text: "You deserve connection without pretending to be perfect.", tone: "hopeful" },
+      { id: "core_065", text: "You are allowed to disappoint unrealistic expectations.", tone: "grounded" },
+      { id: "core_066", text: "Your mistakes are not your entire identity.", tone: "steady" },
+      { id: "core_067", text: "You can breathe without solving everything.", tone: "calming" },
+      { id: "core_068", text: "You are worthy of care even on difficult days.", tone: "compassionate" },
+      { id: "core_069", text: "You do not need to become someone else to deserve peace.", tone: "gentle" },
+      { id: "core_070", text: "You are still growing, even when growth feels invisible.", tone: "hopeful" },
+      { id: "core_071", text: "Your inner critic is not always telling the truth.", tone: "grounded" },
+      { id: "core_072", text: "You are allowed to recover from the past.", tone: "encouraging" },
+      { id: "core_073", text: "You do not need to earn the right to exist peacefully.", tone: "direct" },
+      { id: "core_074", text: "You can continue forward without having everything figured out.", tone: "steady" },
+      { id: "core_075", text: "You deserve space to be human.", tone: "compassionate" },
+      { id: "core_076", text: "Your nervous system deserves rest too.", tone: "gentle" },
+      { id: "core_077", text: "You are not weak for needing support.", tone: "grounded" },
+      { id: "core_078", text: "Healing includes learning not to abandon yourself.", tone: "reflective" },
+      { id: "core_079", text: "You can survive uncertainty.", tone: "steady" },
+      { id: "core_080", text: "You are more than your anxious thoughts.", tone: "calming" },
+      { id: "core_081", text: "Your life still contains possibility.", tone: "hopeful" },
+      { id: "core_082", text: "You are allowed to stop punishing yourself.", tone: "direct" },
+      { id: "core_083", text: "You deserve patience during difficult seasons.", tone: "gentle" },
+      { id: "core_084", text: "You can learn to feel safe inside your own life again.", tone: "hopeful" },
+      { id: "core_085", text: "You do not need to become perfect to become whole.", tone: "compassionate" },
+      { id: "core_086", text: "You are allowed to let this moment be enough.", tone: "calming" },
+      { id: "core_087", text: "Your humanity is not a flaw.", tone: "grounded" },
+      { id: "core_088", text: "You can keep going without attacking yourself.", tone: "encouraging" },
+      { id: "core_089", text: "You are still deserving of love during imperfect chapters.", tone: "compassionate" },
+      { id: "core_090", text: "Your future can become larger than your current pain.", tone: "hopeful" },
+      { id: "core_091", text: "You are allowed to unclench.", tone: "calming" },
+      { id: "core_092", text: "Your feelings make sense in the context of your experiences.", tone: "reflective" },
+      { id: "core_093", text: "You can restart without hating yourself first.", tone: "encouraging" },
+      { id: "core_094", text: "You are not permanently trapped in this version of yourself.", tone: "hopeful" },
+      { id: "core_095", text: "You deserve kindness from your own mind.", tone: "compassionate" },
+      { id: "core_096", text: "You are allowed to exist without constant comparison.", tone: "grounded" },
+      { id: "core_097", text: "You can return to yourself gradually.", tone: "gentle" },
+      { id: "core_098", text: "You are still worthy on quiet, unproductive days.", tone: "compassionate" },
+      { id: "core_099", text: "You can continue becoming the person you want to be.", tone: "hopeful" },
+      { id: "core_100", text: "You are allowed to live without being at war with yourself.", tone: "direct" }
+    ];
+
+    const textEl = document.getElementById("affirmationText");
+    const playButton = document.getElementById("playButton");
+    const silenceRange = document.getElementById("silenceRange");
+    const silenceValue = document.getElementById("silenceValue");
+    const statusEl = document.getElementById("status");
+
+    let isPlaying = false;
+    let queue = [];
+    let timer = null;
+    let voices = [];
+
+    function shuffleArray(items) {
+      const array = [...items];
+      for (let i = array.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function loadVoices() {
+      voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+      const voice = getMaleVoice();
+      statusEl.textContent = voice ? `Voice: ${voice.name}` : "";
+    }
+
+    function getMaleVoice() {
+      const preferred = [
+        "Google UK English Male",
+        "Microsoft David",
+        "Microsoft Mark",
+        "Microsoft George",
+        "Alex",
+        "Daniel",
+        "Google US English"
+      ];
+
+      for (const name of preferred) {
+        const match = voices.find((voice) => voice.name.toLowerCase().includes(name.toLowerCase()));
+        if (match) return match;
+      }
+
+      return (
+        voices.find((voice) => /male|david|mark|george|alex|daniel|guy/i.test(voice.name)) ||
+        voices.find((voice) => voice.lang && voice.lang.toLowerCase().startsWith("en")) ||
+        voices[0] ||
+        null
+      );
+    }
+
+    function stop() {
+      isPlaying = false;
+      playButton.textContent = "Play";
+      if (timer) clearTimeout(timer);
+      timer = null;
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    }
+
+    function speakNext() {
+      if (!isPlaying) return;
+
+      if (!queue.length) {
+        queue = shuffleArray(AFFIRMATIONS);
+      }
+
+      const next = queue.shift();
+      textEl.textContent = next.text;
+
+      const utterance = new SpeechSynthesisUtterance(next.text);
+      const voice = getMaleVoice();
+
+      utterance.rate = 0.82;
+      utterance.pitch = 0.82;
+      utterance.volume = 1;
+      if (voice) utterance.voice = voice;
+
+      utterance.onend = () => {
+        if (!isPlaying) return;
+        const silenceMs = Math.max(0, Number(silenceRange.value)) * 1000;
+        timer = setTimeout(speakNext, silenceMs);
+      };
+
+      utterance.onerror = () => {
+        if (!isPlaying) return;
+        const silenceMs = Math.max(0, Number(silenceRange.value)) * 1000;
+        timer = setTimeout(speakNext, silenceMs);
+      };
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function start() {
+      if (!window.speechSynthesis) {
+        textEl.textContent = "Speech synthesis is not supported in this browser.";
+        return;
+      }
+
+      loadVoices();
+      queue = shuffleArray(AFFIRMATIONS);
+      isPlaying = true;
+      playButton.textContent = "Stop";
+      speakNext();
+    }
+
+    playButton.addEventListener("click", () => {
+      if (isPlaying) stop();
+      else start();
+    });
+
+    silenceRange.addEventListener("input", () => {
+      silenceValue.textContent = silenceRange.value;
+    });
+
+    if ("speechSynthesis" in window) {
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    } else {
+      statusEl.textContent = "Speech synthesis is not supported in this browser.";
+    }
+
+    window.addEventListener("beforeunload", stop);
+  </script>
 </body>
 </html>
